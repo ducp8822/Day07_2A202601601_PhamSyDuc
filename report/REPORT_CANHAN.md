@@ -87,14 +87,14 @@ Vượt qua bộ kiểm thử là điều kiện tính điểm phần này.
 
 | Cặp | Câu A | Câu B | Dự đoán | Điểm thực tế | Đúng? |
 |------|-----------|-----------|---------|--------------|-------|
-| 1 | | | cao / thấp | | |
-| 2 | | | cao / thấp | | |
-| 3 | | | cao / thấp | | |
-| 4 | | | cao / thấp | | |
-| 5 | | | cao / thấp | | |
+| 1 | Students register for courses through the online portal. | Course enrollment is completed using the student portal. | cao | 0.760827 | Có |
+| 2 | The final add/drop deadline is July 11, 2026. | Students may change their Summer 2026 courses until July 11, 2026. | cao | 0.654121 | Có |
+| 3 | A withdrawn course receives a W grade. | The cafeteria serves lunch from Monday to Friday. | thấp | 0.082864 | Có |
+| 4 | The library opens at eight in the morning. | Unmet prerequisites prevent course registration. | thấp | 0.058327 | Có |
+| 5 | Students must pay tuition before the stated deadline. | Tuition fees are due by the announced payment date. | cao | 0.607986 | Có |
 
 **Kết quả nào bất ngờ nhất? Điều này nói gì về cách embeddings biểu diễn ý nghĩa?**
-> *Viết 2-3 câu:*
+> Cặp 5 có cùng ý nghĩa về hạn thanh toán học phí nhưng điểm chỉ đạt 0.607986, thấp hơn cặp 1. Điều này cho thấy embedding không chỉ dựa vào chủ đề chung mà còn chịu ảnh hưởng bởi cách diễn đạt và mức độ trùng khớp của các khái niệm cụ thể.
 
 ---
 
@@ -104,16 +104,16 @@ Chạy **5 câu hỏi đánh giá của nhóm** trên mã nguồn cá nhân củ
 
 | # | Câu hỏi (Query) | Top-1 Chunk truy xuất được (tóm tắt) | Điểm Score | Có liên quan không? (Relevant) | Câu trả lời của Agent (tóm tắt) |
 |---|-------|--------------------------------|-------|-----------|------------------------|
-| 1 | Starting in Summer 2026, which portal must students use for course registration, and what checks confirm that registration is complete? | | | | |
-| 2 | What was the Summer 2026 course registration period, and what was the final add/drop deadline? | | | | |
-| 3 | After the add/drop period, how is a course withdrawal recorded, by what point must it occur, and what is the program-wide withdrawal credit limit? | | | | |
-| 4 | What do Full and Conflict mean during course registration, and what happens when prerequisite requirements have not been satisfied? | | | | |
-| 5 | How should students request a course retake, audit or individual study, and how should they request withdrawal after the add/drop period? | | | | |
+| 1 | Starting in Summer 2026, which portal must students use for course registration, and what checks confirm that registration is complete? | `summer-2026-new-student-portal`: đăng ký từ Summer 2026 được thực hiện trên VinUniDigi Student Portal. | 0.792193 | Có | Xác định đúng portal nhưng context top-3 chưa chứa đầy đủ các bước kiểm tra và trạng thái `Registered`. |
+| 2 | What was the Summer 2026 course registration period, and what was the final add/drop deadline? | `summer-2026-registration`: thời gian đăng ký từ 29/6 đến 4/7/2026. | 0.866933 | Có | Trả lời được thời gian đăng ký và hạn add/drop cuối cùng là 11/7/2026 từ các chunk top-2. |
+| 3 | After the add/drop period, how is a course withdrawal recorded, by what point must it occur, and what is the program-wide withdrawal credit limit? | `spring-2026-important-notes`: withdrawal phải trước khi hoàn thành quá 30% thời lượng môn học. | 0.736959 | Có | Context trả lời được điểm `W` và mốc 30%, nhưng top-3 chưa chứa giới hạn 18 tín chỉ. |
+| 4 | What do Full and Conflict mean during course registration, and what happens when prerequisite requirements have not been satisfied? | `summer-2026-new-student-portal`: giải thích đầy đủ trạng thái Full, Conflict và prerequisite. | 0.664962 | Có | Trả lời đầy đủ: Full là hết chỗ, Conflict là trùng lịch và hệ thống chặn khi chưa đạt prerequisite. |
+| 5 | How should students request a course retake, audit or individual study, and how should they request withdrawal after the add/drop period? | `undergraduate-academic-regulations`: quy định chung về withdrawal sau add/drop. | 0.739508 | Không | Không truy xuất được `forms-and-petitions`, nên thiếu quy trình gửi email, Registrar và phê duyệt của giảng viên. |
 
-**Bao nhiêu câu hỏi trả về chunk có liên quan trong top-3?** __ / 5
+**Bao nhiêu câu hỏi trả về chunk có liên quan trong top-3?** 4 / 5
 
 **Điều hay nhất tôi học được từ thành viên khác / nhóm khác (qua demo):**
-> *Viết 2-3 câu:*
+> Việc so sánh kết quả cho thấy chunking giữ đúng ranh giới mục giúp câu hỏi cụ thể truy xuất chính xác hơn. Một truy vấn ghép nhiều ý như câu 5 có thể ưu tiên đoạn quy định chung thay vì trang hướng dẫn thủ tục, vì vậy cần thử section-based chunking hoặc lọc thêm theo `category`.
 
 ---
 
@@ -124,6 +124,6 @@ Chạy **5 câu hỏi đánh giá của nhóm** trên mã nguồn cá nhân củ
 | Khởi động (Warm-up) | 5 / 5 |
 | Hướng tiếp cận của tôi (My Approach) | 10 / 10 |
 | Hoàn thiện code (Core Implementation — tests) | 30 / 30 |
-| Dự đoán độ tương tự (Similarity Predictions) | / 5 |
-| Kết quả truy xuất của tôi (Competition Results) | / 10 |
-| **Tổng phần cá nhân** | **/ 60** |
+| Dự đoán độ tương tự (Similarity Predictions) | 5 / 5 |
+| Kết quả truy xuất của tôi (Competition Results) | 6 / 10 |
+| **Tổng phần cá nhân** | **56 / 60** |
