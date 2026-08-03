@@ -104,11 +104,11 @@ Chạy **5 câu hỏi đánh giá của nhóm** trên mã nguồn cá nhân củ
 
 | # | Câu hỏi (Query) | Top-1 Chunk truy xuất được (tóm tắt) | Điểm Score | Có liên quan không? (Relevant) | Câu trả lời của Agent (tóm tắt) |
 |---|-------|--------------------------------|-------|-----------|------------------------|
-| 1 | | | | | |
-| 2 | | | | | |
-| 3 | | | | | |
-| 4 | | | | | |
-| 5 | | | | | |
+| 1 | Starting in Summer 2026, which portal must students use for course registration, and what checks confirm that registration is complete? | | | | |
+| 2 | What was the Summer 2026 course registration period, and what was the final add/drop deadline? | | | | |
+| 3 | After the add/drop period, how is a course withdrawal recorded, by what point must it occur, and what is the program-wide withdrawal credit limit? | | | | |
+| 4 | What do Full and Conflict mean during course registration, and what happens when prerequisite requirements have not been satisfied? | | | | |
+| 5 | How should students request a course retake, audit or individual study, and how should they request withdrawal after the add/drop period? | | | | |
 
 **Bao nhiêu câu hỏi trả về chunk có liên quan trong top-3?** __ / 5
 

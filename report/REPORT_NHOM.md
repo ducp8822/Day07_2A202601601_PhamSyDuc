@@ -99,11 +99,11 @@ Chạy `ChunkingStrategyComparator().compare()` trên 2-3 tài liệu:
 
 | # | Câu hỏi (Query) | Câu trả lời chuẩn (Gold Answer) | Chunk nào chứa thông tin? |
 |---|-------|-------------------------------|--------------------------|
-| 1 | | | |
-| 2 | | | |
-| 3 | | | |
-| 4 | | | |
-| 5 | | | |
+| 1 | Starting in Summer 2026, which portal must students use for course registration, and what checks confirm that registration is complete? | Registration uses the VinUniDigi Student Portal. Students must choose the correct term, check prerequisites, availability and timetable conflicts, click CONFIRM, verify the Registered status and preview the timetable. | `summer-2026-new-student-portal` |
+| 2 | What was the Summer 2026 course registration period, and what was the final add/drop deadline? | Registration ran from June 29 to July 4, 2026; the final add/drop deadline was July 11, 2026. | `summer-2026-registration` |
+| 3 | After the add/drop period, how is a course withdrawal recorded, by what point must it occur, and what is the program-wide withdrawal credit limit? | A withdrawal receives a W grade, must occur before more than 30% of course study time is completed, and is limited to 18 credits across the program. | `undergraduate-academic-regulations`, `spring-2026-important-notes` |
+| 4 | What do Full and Conflict mean during course registration, and what happens when prerequisite requirements have not been satisfied? | Full means no seats are available; Conflict means the class overlaps another registered class; unmet prerequisites prevent registration. | `summer-2026-new-student-portal`, `registration-hub` |
+| 5 | How should students request a course retake, audit or individual study, and how should they request withdrawal after the add/drop period? | Requests are emailed to the Registrar's Office. Withdrawal after add/drop is also requested by email and requires the instructor's approval. | `forms-and-petitions` |
 
 ### Tổng hợp chất lượng truy xuất của nhóm
 

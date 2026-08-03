@@ -1,0 +1,42 @@
+[
+  {
+    "id": "q1",
+    "query": "Starting in Summer 2026, which portal must students use for course registration, and what checks confirm that registration is complete?",
+    "gold_answer": "Starting with Summer 2026, course registration is conducted through the VinUniDigi Student Portal at one.vinuni.edu.vn/student. Students should select the correct term, verify prerequisites, class availability and timetable conflicts, click CONFIRM, ensure every course shows the status Registered, and preview the timetable.",
+    "relevant_doc_ids": ["summer-2026-new-student-portal"],
+    "required_evidence": ["VinUniDigi Student Portal", "Summer 2026", "CONFIRM", "Registered"],
+    "metadata_filter": {"audience": "student"}
+  },
+  {
+    "id": "q2",
+    "query": "What was the Summer 2026 course registration period, and what was the final add/drop deadline?",
+    "gold_answer": "The Summer 2026 course registration period ran from June 29 to July 4, 2026. The final add/drop deadline was July 11, 2026.",
+    "relevant_doc_ids": ["summer-2026-registration"],
+    "required_evidence": ["June 29", "July 4", "July 11", "2026"],
+    "metadata_filter": null
+  },
+  {
+    "id": "q3",
+    "query": "After the add/drop period, how is a course withdrawal recorded, by what point must it occur, and what is the program-wide withdrawal credit limit?",
+    "gold_answer": "After add/drop, dropping a course is treated as a withdrawal and a W grade is recorded on the transcript. Withdrawal must occur before the student completes more than 30 percent of the course study time, and students may withdraw from at most 18 credits over the entire program.",
+    "relevant_doc_ids": ["undergraduate-academic-regulations", "spring-2026-important-notes"],
+    "required_evidence": ["W", "30%", "18 credits"],
+    "metadata_filter": null
+  },
+  {
+    "id": "q4",
+    "query": "What do Full and Conflict mean during course registration, and what happens when prerequisite requirements have not been satisfied?",
+    "gold_answer": "Full means that no seats are available. Conflict means that the class overlaps with another registered class. The system prevents registration when prerequisite or pre-study requirements have not been satisfied.",
+    "relevant_doc_ids": ["summer-2026-new-student-portal", "registration-hub"],
+    "required_evidence": ["Full", "no seats", "Conflict", "prerequisite"],
+    "metadata_filter": null
+  },
+  {
+    "id": "q5",
+    "query": "How should students request a course retake, audit or individual study, and how should they request withdrawal after the add/drop period?",
+    "gold_answer": "Course retake, audit and individual study requests are submitted by email to the Registrar's Office. Withdrawal after the add/drop period is also requested by email and requires the course instructor's approval.",
+    "relevant_doc_ids": ["forms-and-petitions"],
+    "required_evidence": ["email", "Registrar", "instructor", "approval"],
+    "metadata_filter": null
+  }
+]
