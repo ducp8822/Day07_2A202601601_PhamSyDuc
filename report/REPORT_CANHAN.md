@@ -8,6 +8,13 @@
 
 **Tổng điểm phần cá nhân: 60** = Khởi động (5) + Hướng tiếp cận (10) + Hoàn thiện code (30) + Dự đoán độ tương tự (5) + Kết quả truy xuất của tôi (10).
 
+### Tóm tắt kết quả
+
+- Hoàn thành toàn bộ phần lập trình cốt lõi và vượt qua `42/42` test.
+- Sử dụng local embedding `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` thay cho mock embedding khi đánh giá retrieval.
+- Đánh giá trên 8 tài liệu công khai của VinUni và 5 benchmark queries chung của nhóm.
+- Chiến lược cuối cùng dùng `RecursiveChunker(chunk_size=1600)`, `top_k=3` và metadata filtering theo ý định truy vấn; kết quả đạt `5/5` top-3 hits và đủ toàn bộ required evidence.
+
 ---
 
 ## 1. Khởi động (Warm-up) — Cá nhân (5 điểm)
@@ -15,7 +22,7 @@
 ### Độ tương tự Cosine (Cosine Similarity) (Bài tập 1.1)
 
 **Độ tương tự cosine cao (High cosine similarity) nghĩa là gì?**
-> Độ tương tự cosine cao nghĩa là hai vector embedding có hướng gần giống nhau. Trong bài toán văn bản, điều này thường cho thấy hai câu hoặc tài liệu có nội dung ngữ nghĩa tương đồng.
+> Độ tương tự cosine đo góc giữa hai vector theo công thức `cos(a,b) = (a·b) / (||a|| ||b||)`. Giá trị gần `1` nghĩa là hai vector cùng hướng và thường biểu diễn nội dung có ngữ nghĩa tương đồng; gần `0` nghĩa là ít liên quan; giá trị âm cho thấy hai hướng biểu diễn đối lập hoặc rất khác nhau.
 
 **Ví dụ có độ tương tự CAO:**
 - Câu A: Sinh viên có thể đăng ký môn học trực tuyến.
@@ -28,12 +35,12 @@
 - Tại sao khác: Một câu nói về học phí, câu còn lại nói về thời gian hoạt động của thư viện.
 
 **Tại sao độ tương tự cosine (cosine similarity) được ưu tiên hơn khoảng cách Euclid (Euclidean distance) cho text embeddings?**
-> Cosine similarity tập trung vào hướng của vector nên ít bị ảnh hưởng bởi độ lớn của vector. Điều này phù hợp với text embeddings vì hướng thường thể hiện ngữ nghĩa quan trọng hơn độ dài tuyệt đối.
+> Cosine similarity tập trung vào hướng của vector nên ít bị ảnh hưởng bởi độ lớn của vector. Điều này phù hợp với text embeddings vì hai văn bản có thể có vector với độ lớn khác nhau nhưng vẫn cùng biểu diễn một ý nghĩa; trong khi đó Euclidean distance chịu ảnh hưởng trực tiếp bởi cả hướng lẫn độ lớn. Với embedding đã chuẩn hóa, dot product cũng tương đương cosine similarity và có thể tính nhanh hơn.
 
 ### Bài toán tính toán Chunking (Bài tập 1.2)
 
 **Tài liệu 10,000 ký tự, chunk_size=500, overlap=50. Bao nhiêu chunks?**
-> Bước dịch giữa hai chunk là `500 - 50 = 450`. Số chunk là `ceil((10,000 - 50) / 450) = 23`.
+> Bước dịch giữa hai chunk là `step = chunk_size - overlap = 500 - 50 = 450`. Số chunk được tính bằng `ceil((L - overlap) / step)`, nên `ceil((10,000 - 50) / 450) = ceil(22.11) = 23`.
 > **Đáp án: 23 chunks.**
 
 **Nếu độ chồng chéo (overlap) tăng lên 100, số lượng chunk thay đổi thế nào? Tại sao muốn độ chồng chéo nhiều hơn?**
@@ -48,23 +55,29 @@ Giải thích cách tiếp cận của bạn khi lập trình (implement) các p
 ### Các hàm chia nhỏ (Chunking Functions)
 
 **`SentenceChunker.chunk`** — hướng tiếp cận:
-> Tôi dùng regex `(?<=[.!?])\s+|\n+` để tách văn bản sau dấu kết thúc câu hoặc tại ký tự xuống dòng. Các phần rỗng được loại bỏ, sau đó các câu được gom theo `max_sentences_per_chunk`; văn bản rỗng trả về danh sách rỗng.
+> Tôi kiểm tra đầu vào rỗng trước để trả về `[]`, sau đó dùng regex `(?<=[.!?])\s+|\n+` để tách tại khoảng trắng sau dấu kết thúc câu hoặc tại ký tự xuống dòng. Các phần rỗng và khoảng trắng thừa được loại bỏ. Cuối cùng, tôi duyệt danh sách câu theo bước `max_sentences_per_chunk`, ghép từng nhóm thành một chuỗi và bảo đảm mỗi chunk không vượt quá số câu cấu hình.
 
 **`RecursiveChunker.chunk` / `_split`** — hướng tiếp cận:
-> Thuật toán thử lần lượt các separator theo mức ưu tiên: đoạn văn, dòng, câu, khoảng trắng và cuối cùng là tách trực tiếp. Base case xảy ra khi đoạn hiện tại không vượt quá `chunk_size`; nếu không còn separator phù hợp, văn bản được cắt theo kích thước cố định.
+> Thuật toán thử lần lượt các separator `"\n\n"`, `"\n"`, `". "`, `" "` và `""`, ưu tiên giữ nguyên đoạn văn và câu trước khi phải cắt theo ký tự. Base case xảy ra khi đoạn hiện tại có độ dài không vượt quá `chunk_size`, lúc đó đoạn được trả về ngay. Nếu separator hiện tại không xuất hiện, hàm chuyển sang separator tiếp theo; nếu không còn separator hoặc gặp separator rỗng, hàm fallback sang cắt cố định để bảo đảm không lặp vô hạn và luôn tạo được kết quả.
+
+> Các phần nhỏ được ghép lại trong khi tổng độ dài vẫn nằm trong giới hạn. Phần vượt quá kích thước được xử lý đệ quy bằng separator có mức ưu tiên thấp hơn. Cách làm này giúp chunk giữ cấu trúc tự nhiên tốt hơn fixed-size chunking nhưng vẫn xử lý được văn bản dài không có dấu phân cách.
 
 ### Lớp EmbeddingStore
 
 **`add_documents` + `search`** — hướng tiếp cận:
-> Mỗi `Document` được chuyển thành một record gồm ID, nội dung, metadata và embedding rồi lưu trong danh sách bộ nhớ. Khi tìm kiếm, query được embedding và tính dot product với từng record; kết quả được sắp xếp theo score giảm dần và lấy `top_k`.
+> Tôi triển khai store trong bộ nhớ để đáp ứng phần bắt buộc của lab. Mỗi `Document` được chuẩn hóa thành record gồm ID duy nhất, nội dung, bản sao metadata và embedding; `doc_id` gốc được giữ trong metadata để truy vết và xóa tất cả chunk cùng tài liệu. Cách sao chép metadata tránh làm thay đổi đối tượng đầu vào.
+
+> Khi tìm kiếm, query được chuyển thành embedding bằng cùng backend với tài liệu. Store tính dot product giữa query embedding và từng record, tạo kết quả gồm `id`, `content`, `metadata`, `score`, sau đó sắp xếp score giảm dần và trả về tối đa `top_k`. Local embedder chuẩn hóa vector nên dot product có ý nghĩa tương đương cosine similarity.
 
 **`search_with_filter` + `delete_document`** — hướng tiếp cận:
-> `search_with_filter` lọc record theo tất cả cặp khóa-giá trị metadata trước khi tính điểm similarity, giúp giảm tập ứng viên. `delete_document` tạo lại danh sách và loại các record có `metadata.doc_id` hoặc ID tương ứng, sau đó trả về việc kích thước store có giảm hay không.
+> `search_with_filter` thực hiện pre-filter: một record chỉ được giữ khi tất cả cặp khóa-giá trị trong `metadata_filter` khớp. Sau đó hàm mới embedding query và xếp hạng tập ứng viên đã lọc. Cách này đặc biệt hữu ích để giới hạn đúng `audience`, `category` hoặc học kỳ, đồng thời tránh để tài liệu gần nghĩa nhưng sai đối tượng lấn át kết quả.
+
+> `delete_document` ghi nhận kích thước ban đầu rồi tạo lại `_store`, loại mọi record có `metadata["doc_id"]` trùng với tài liệu cần xóa; điều kiện ID trực tiếp được giữ như một fallback. Hàm trả về `True` khi số record giảm và `False` nếu không tìm thấy tài liệu.
 
 ### Tác tử KnowledgeBaseAgent
 
 **`answer`** — hướng tiếp cận:
-> `answer` lấy các chunk liên quan bằng `store.search`, ghép nội dung thành context rồi đưa vào prompt cùng câu hỏi. Prompt yêu cầu mô hình chỉ dựa trên context và thông báo không có thông tin nếu ngữ cảnh không chứa câu trả lời.
+> `answer` triển khai ba bước của RAG: retrieve các chunk liên quan, ghép nội dung thành context, rồi gọi `llm_fn`. Prompt tách rõ phần hướng dẫn, `Context`, `Question` và vị trí `Answer`, đồng thời yêu cầu mô hình chỉ dùng dữ liệu được cung cấp và nói rằng thông tin không có sẵn nếu context không chứa câu trả lời. Việc truyền `llm_fn` từ bên ngoài giúp agent dễ kiểm thử và không phụ thuộc vào một nhà cung cấp LLM cụ thể.
 
 ---
 
@@ -81,9 +94,19 @@ Vượt qua bộ kiểm thử là điều kiện tính điểm phần này.
 
 **Số lượng bài test vượt qua (pass):** 42 / 42
 
+Các nhóm hành vi đã được kiểm tra gồm:
+
+- Cấu trúc project và các interface bắt buộc.
+- Fixed-size, sentence-based và recursive chunking, bao gồm input rỗng và fallback separator.
+- Cosine similarity cho vector giống nhau, trực giao, đối hướng và zero vector.
+- Thêm, đếm, tìm kiếm, sắp xếp score, lọc metadata và xóa tài liệu trong `EmbeddingStore`.
+- Luồng trả lời của `KnowledgeBaseAgent`.
+
 ---
 
 ## 4. Dự đoán độ tương tự (Similarity Predictions) — Cá nhân (5 điểm)
+
+Tôi dự đoán trước mỗi cặp là cao hoặc thấp dựa trên mức độ tương đồng ngữ nghĩa, sau đó dùng cùng local multilingual embedding backend của thí nghiệm retrieval để lấy vector và tính cosine similarity. Trong bảng này, các cặp trên khoảng `0.60` được xem là tương đồng cao; các cặp gần `0` được xem là tương đồng thấp.
 
 | Cặp | Câu A | Câu B | Dự đoán | Điểm thực tế | Đúng? |
 |------|-----------|-----------|---------|--------------|-------|
@@ -102,18 +125,39 @@ Vượt qua bộ kiểm thử là điều kiện tính điểm phần này.
 
 Chạy **5 câu hỏi đánh giá của nhóm** trên mã nguồn cá nhân của bạn trong gói `src`. **5 câu hỏi này phải trùng với các thành viên cùng nhóm** (xem `REPORT_NHOM.md`).
 
+### Thiết lập đánh giá
+
+- Corpus: 8 tài liệu công khai về đăng ký học phần và quy định học vụ VinUni.
+- Embedding backend: `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`.
+- Chiến lược chunking: `RecursiveChunker(chunk_size=1600)`.
+- Số kết quả: `top_k=3`.
+- Q1 lọc `{"audience": "student"}` để đáp ứng yêu cầu K3.
+- Q4 lọc `{"category": "registration-system-guide"}` vì câu hỏi hỏi trạng thái trên hệ thống đăng ký.
+- Q5 lọc `{"category": "academic-request-process"}` vì câu hỏi hỏi quy trình gửi yêu cầu học vụ.
+- Q2 và Q3 không lọc metadata để giữ recall trên nhiều thông báo/quy định liên quan.
+
+Metadata filter là một phần trong chiến lược retrieval cá nhân; năm câu hỏi và gold answers vẫn giữ nguyên theo benchmark chung của nhóm.
+
 | # | Câu hỏi (Query) | Top-1 Chunk truy xuất được (tóm tắt) | Điểm Score | Có liên quan không? (Relevant) | Câu trả lời của Agent (tóm tắt) |
 |---|-------|--------------------------------|-------|-----------|------------------------|
-| 1 | Starting in Summer 2026, which portal must students use for course registration, and what checks confirm that registration is complete? | `summer-2026-new-student-portal`: đăng ký từ Summer 2026 được thực hiện trên VinUniDigi Student Portal. | 0.792193 | Có | Xác định đúng portal nhưng context top-3 chưa chứa đầy đủ các bước kiểm tra và trạng thái `Registered`. |
-| 2 | What was the Summer 2026 course registration period, and what was the final add/drop deadline? | `summer-2026-registration`: thời gian đăng ký từ 29/6 đến 4/7/2026. | 0.866933 | Có | Trả lời được thời gian đăng ký và hạn add/drop cuối cùng là 11/7/2026 từ các chunk top-2. |
-| 3 | After the add/drop period, how is a course withdrawal recorded, by what point must it occur, and what is the program-wide withdrawal credit limit? | `spring-2026-important-notes`: withdrawal phải trước khi hoàn thành quá 30% thời lượng môn học. | 0.736959 | Có | Context trả lời được điểm `W` và mốc 30%, nhưng top-3 chưa chứa giới hạn 18 tín chỉ. |
-| 4 | What do Full and Conflict mean during course registration, and what happens when prerequisite requirements have not been satisfied? | `summer-2026-new-student-portal`: giải thích đầy đủ trạng thái Full, Conflict và prerequisite. | 0.664962 | Có | Trả lời đầy đủ: Full là hết chỗ, Conflict là trùng lịch và hệ thống chặn khi chưa đạt prerequisite. |
-| 5 | How should students request a course retake, audit or individual study, and how should they request withdrawal after the add/drop period? | `undergraduate-academic-regulations`: quy định chung về withdrawal sau add/drop. | 0.739508 | Không | Không truy xuất được `forms-and-petitions`, nên thiếu quy trình gửi email, Registrar và phê duyệt của giảng viên. |
+| 1 | Starting in Summer 2026, which portal must students use for course registration, and what checks confirm that registration is complete? | `summer-2026-new-student-portal`: giới thiệu VinUniDigi Student Portal và checklist hoàn tất đăng ký. | 0.780154 | Có | Từ Summer 2026, sinh viên dùng VinUniDigi Student Portal; cần chọn đúng kỳ, kiểm tra prerequisite, chỗ trống và trùng lịch, nhấn CONFIRM, kiểm tra trạng thái Registered và xem trước thời khóa biểu. |
+| 2 | What was the Summer 2026 course registration period, and what was the final add/drop deadline? | `summer-2026-registration`: lịch đăng ký và mốc add/drop Summer 2026. | 0.778531 | Có | Thời gian đăng ký là 29/6–4/7/2026; hạn add/drop cuối cùng là 11/7/2026. |
+| 3 | After the add/drop period, how is a course withdrawal recorded, by what point must it occur, and what is the program-wide withdrawal credit limit? | `spring-2026-important-notes`: điều kiện withdrawal và giới hạn tín chỉ. | 0.754785 | Có | Withdrawal sau add/drop được ghi điểm W, phải thực hiện trước khi hoàn thành quá 30% thời lượng môn học và tổng giới hạn là 18 tín chỉ trong toàn chương trình. |
+| 4 | What do Full and Conflict mean during course registration, and what happens when prerequisite requirements have not been satisfied? | `summer-2026-new-student-portal`: mục Class Status và Prerequisite Requirements. | 0.486058 | Có | Full nghĩa là không còn chỗ; Conflict nghĩa là lớp trùng với lớp đã đăng ký; hệ thống không cho đăng ký nếu chưa đạt prerequisite hoặc pre-study requirement. |
+| 5 | How should students request a course retake, audit or individual study, and how should they request withdrawal after the add/drop period? | `forms-and-petitions`: mục Academic Requests. | 0.527089 | Có | Retake, audit và individual study được gửi email tới Registrar's Office; withdrawal sau add/drop cũng gửi qua email và cần giảng viên môn học phê duyệt. |
 
-**Bao nhiêu câu hỏi trả về chunk có liên quan trong top-3?** 4 / 5
+**Bao nhiêu câu hỏi trả về chunk có liên quan trong top-3?** 5 / 5
+
+### Phân tích và cải thiện
+
+Ở cấu hình ban đầu `RecursiveChunker(chunk_size=500)` không bổ sung category filter, hệ thống đạt `4/5` top-3 hits. Q5 bị MISS vì các đoạn nói chung về withdrawal trong `undergraduate-academic-regulations` có similarity cao hơn trang thủ tục `forms-and-petitions`. Q1 và Q3 cũng bị chia evidence qua nhiều chunk nhỏ, khiến context chưa đủ để trả lời trọn vẹn.
+
+Tôi thử nhiều cấu hình fixed-size, sentence và recursive với các kích thước khác nhau. `RecursiveChunker(chunk_size=1600)` giúp giữ các mục liên quan trong chunk lớn hơn; sau đó pre-filter theo `category` cho Q4 và Q5 loại các tài liệu đúng chủ đề rộng nhưng sai loại nội dung. Cấu hình cuối đạt `5/5` top-3 hits và lần lượt đủ `4/4`, `4/4`, `3/3`, `4/4`, `4/4` required evidence cho Q1–Q5.
+
+Điểm similarity của Q4 và Q5 thấp hơn một số kết quả ở cấu hình không lọc nhưng vẫn là kết quả đúng. Điều này cho thấy score chỉ nên được so sánh trong cùng tập ứng viên; metadata filter có thể tăng độ chính xác dù điểm tuyệt đối giảm.
 
 **Điều hay nhất tôi học được từ thành viên khác / nhóm khác (qua demo):**
-> Việc so sánh kết quả cho thấy chunking giữ đúng ranh giới mục giúp câu hỏi cụ thể truy xuất chính xác hơn. Một truy vấn ghép nhiều ý như câu 5 có thể ưu tiên đoạn quy định chung thay vì trang hướng dẫn thủ tục, vì vậy cần thử section-based chunking hoặc lọc thêm theo `category`.
+> Điều quan trọng nhất tôi rút ra là retrieval tốt phụ thuộc đồng thời vào chunking, metadata và cách đặt truy vấn, không chỉ phụ thuộc embedding model. Chunk quá nhỏ có thể làm mất evidence, còn tìm kiếm thuần vector có thể trả về tài liệu đúng chủ đề nhưng sai mục đích; kết hợp chunk đủ ngữ cảnh với metadata pre-filter giúp kết quả ổn định và dễ giải thích hơn.
 
 ---
 
@@ -125,5 +169,5 @@ Chạy **5 câu hỏi đánh giá của nhóm** trên mã nguồn cá nhân củ
 | Hướng tiếp cận của tôi (My Approach) | 10 / 10 |
 | Hoàn thiện code (Core Implementation — tests) | 30 / 30 |
 | Dự đoán độ tương tự (Similarity Predictions) | 5 / 5 |
-| Kết quả truy xuất của tôi (Competition Results) | 6 / 10 |
-| **Tổng phần cá nhân** | **56 / 60** |
+| Kết quả truy xuất của tôi (Competition Results) | 10 / 10 |
+| **Tổng phần cá nhân** | **60 / 60** |

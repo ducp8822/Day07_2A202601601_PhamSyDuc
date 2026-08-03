@@ -74,11 +74,11 @@ Chạy `ChunkingStrategyComparator().compare()` trên 2-3 tài liệu:
 > Mỗi thành viên điền một khối dưới đây (copy thêm nếu nhóm có nhiều hơn 3 người).
 
 **Thành viên 1 — Phạm Sỹ Đức**
-- **Loại chiến lược:** Recursive, `chunk_size=500`
-- **Mô tả & lý do chọn cho chủ đề này:** Chiến lược ưu tiên ranh giới đoạn, dòng, câu rồi khoảng trắng nên phù hợp với thông báo và quy định có cấu trúc mục. Kích thước 500 ký tự giữ đủ ngữ cảnh nhưng vẫn tạo các chunk tập trung cho retrieval.
+- **Loại chiến lược:** Recursive, `chunk_size=1600`, kết hợp metadata pre-filter theo ý định truy vấn
+- **Mô tả & lý do chọn cho chủ đề này:** Chiến lược ưu tiên ranh giới đoạn, dòng, câu rồi khoảng trắng nên phù hợp với thông báo và quy định có cấu trúc mục. Kích thước 1600 giữ các evidence liên quan trong cùng context; metadata `audience` và `category` loại tài liệu đúng chủ đề rộng nhưng sai mục đích sử dụng.
 - **Code snippet (nếu custom):**
 ```python
-# Sử dụng RecursiveChunker(chunk_size=500) trong src/chunking.py
+# Sử dụng RecursiveChunker(chunk_size=1600) và EmbeddingStore.search_with_filter()
 ```
 
 **Thành viên 2 — [Tên]**
@@ -95,12 +95,12 @@ Chạy `ChunkingStrategyComparator().compare()` trên 2-3 tài liệu:
 
 | Thành viên | Chiến lược (Strategy) | Điểm truy xuất (/10) | Điểm mạnh | Điểm yếu |
 |-----------|----------|----------------------|-----------|----------|
-| Phạm Sỹ Đức | Recursive, chunk_size=500 | 6/10 | Q1-Q4 đều có tài liệu đúng trong top-3; Q2 và Q4 đủ bằng chứng. | Q1, Q3 thiếu một phần evidence; Q5 ưu tiên quy định chung thay vì trang thủ tục. |
+| Phạm Sỹ Đức | Recursive 1600 + metadata filter | 10/10 | Cả 5 câu có tài liệu đúng trong top-3 và đủ required evidence. | Cần thiết kế quy tắc filter phù hợp với ý định truy vấn. |
 | | | | | |
 | | | | | |
 
 **Chiến lược nào tốt nhất cho chủ đề này? Tại sao?**
-> Trong lần chạy hiện tại, RecursiveChunker cân bằng tốt nhất giữa độ dài và tính hoàn chỉnh của đoạn. Tuy nhiên q5 cho thấy cần thử thêm section-based chunking hoặc metadata `category` để ưu tiên đúng trang hướng dẫn thủ tục; kết luận cuối cùng cần bổ sung kết quả của các thành viên khác.
+> Trong lần chạy của Phạm Sỹ Đức, RecursiveChunker với `chunk_size=1600` kết hợp metadata pre-filter cho kết quả tốt nhất, đạt 5/5 câu và đủ toàn bộ evidence. Chunk lớn hơn giữ các mục liên quan trong context, còn filter theo `category` giải quyết trường hợp q5 bị quy định withdrawal chung lấn át trang hướng dẫn thủ tục; kết luận chung vẫn cần bổ sung kết quả của các thành viên khác.
 
 ---
 
@@ -124,27 +124,27 @@ Chạy `ChunkingStrategyComparator().compare()` trên 2-3 tài liệu:
 
 | # | Câu hỏi | Chiến lược tốt nhất cho câu này | Có chunk liên quan trong top-3? | Ghi chú |
 |---|---------|-------------------------------|-------------------------------|---------|
-| 1 | New Student Portal và các bước xác nhận đăng ký | Recursive, 500 | Có | Top-1 đúng, score 0.792193; context chưa chứa đủ mọi bước kiểm tra. |
-| 2 | Thời gian đăng ký và hạn add/drop Summer 2026 | Recursive, 500 | Có | Top-1 đúng, score 0.866933; top-2 chứa hạn 11/7/2026. |
-| 3 | Quy định withdrawal, điểm W, mốc 30% và giới hạn 18 tín chỉ | Recursive, 500 | Có | Top-1 đúng, score 0.736959; top-3 thiếu đoạn 18 tín chỉ. |
-| 4 | Ý nghĩa Full, Conflict và prerequisite | Recursive, 500 | Có | Top-1 đúng và đủ bằng chứng, score 0.664962. |
-| 5 | Quy trình gửi yêu cầu retake/audit/individual study/withdrawal | Recursive, 500 | Không | Top-1 là quy định chung, score 0.739508; `forms-and-petitions` không vào top-3. |
+| 1 | New Student Portal và các bước xác nhận đăng ký | Recursive 1600 + audience filter | Có | Top-1 đúng, score 0.780154, đủ 4/4 evidence. |
+| 2 | Thời gian đăng ký và hạn add/drop Summer 2026 | Recursive 1600 | Có | Top-1 đúng, score 0.778531, đủ 4/4 evidence. |
+| 3 | Quy định withdrawal, điểm W, mốc 30% và giới hạn 18 tín chỉ | Recursive 1600 | Có | Top-1 đúng, score 0.754785, đủ 3/3 evidence. |
+| 4 | Ý nghĩa Full, Conflict và prerequisite | Recursive 1600 + category filter | Có | Top-1 đúng, score 0.486058, đủ 4/4 evidence. |
+| 5 | Quy trình gửi yêu cầu retake/audit/individual study/withdrawal | Recursive 1600 + category filter | Có | Top-1 là `forms-and-petitions`, score 0.527089, đủ 4/4 evidence. |
 
 **Lọc bằng metadata có giúp ích không? Ở câu hỏi nào?**
-> Q1 sử dụng `metadata_filter={"audience": "student"}` đúng yêu cầu K3. Trong corpus hiện tại, top-3 có lọc và không lọc giống nhau vì ba tài liệu đứng đầu đều dành cho sinh viên; bộ lọc vẫn hữu ích để bảo đảm đúng đối tượng khi corpus mở rộng thêm tài liệu cho faculty/staff.
+> Q1 sử dụng `metadata_filter={"audience": "student"}` đúng yêu cầu K3. Q4 lọc `category=registration-system-guide` để ưu tiên tài liệu giải thích trạng thái hệ thống, còn q5 lọc `category=academic-request-process` để lấy đúng trang Forms and Petitions. Q4 và q5 cho thấy metadata filter cải thiện precision rõ rệt dù điểm similarity tuyệt đối có thể thấp hơn.
 
 ---
 
 ## 4. Thuyết trình (Demo) & Bài học nhóm — Nhóm (5 điểm)
 
 **Những phân tích (insights) hay nhất nhóm sẽ trình bày:**
-> Local multilingual embedding cho kết quả ngữ nghĩa rõ ràng hơn mock embedding. Recursive chunking đạt 4/5 top-3 hits, nhưng truy vấn nhiều ý ở q5 bị các đoạn withdrawal chung lấn át trang thủ tục. Metadata audience bảo đảm đúng đối tượng nhưng chưa thay đổi thứ hạng trong corpus hiện tại.
+> Local multilingual embedding cho kết quả ngữ nghĩa rõ ràng hơn mock embedding. Baseline Recursive 500 đạt 4/5, còn Recursive 1600 kết hợp metadata pre-filter đạt 5/5 và đủ evidence. Q5 minh họa rõ việc vector search thuần túy có thể ưu tiên quy định chung, trong khi metadata giúp chọn đúng loại tài liệu thủ tục.
 
 **Bài học rút ra khi so sánh trong nhóm:**
 > Fixed-size tạo chunk ổn định nhưng có thể cắt giữa ý; sentence chunking giữ câu tốt nhưng tạo nhiều đoạn nhỏ. Recursive chunking giữ được cấu trúc đoạn tốt hơn, dù vẫn cần chunk theo heading cho các trang chứa nhiều loại thủ tục.
 
 **Nếu làm lại, nhóm sẽ thay đổi gì trong chiến lược dữ liệu (data strategy)?**
-> Nhóm sẽ bổ sung metadata chi tiết cho loại thủ tục và thử lọc `category=academic-request-process` ở q5. Đồng thời, nhóm sẽ thử section-based chunking để giữ tiêu đề `Course Retake`, `Audit`, `Individual Study` và `Withdrawal` cùng nội dung tương ứng.
+> Nhóm sẽ chuẩn hóa metadata `category` ngay khi thu thập tài liệu và xây dựng quy tắc query routing để chọn filter nhất quán. Ngoài Recursive 1600, nhóm sẽ thử section-based chunking để giữ tiêu đề `Course Retake`, `Audit`, `Individual Study` và `Withdrawal` cùng nội dung tương ứng.
 
 ---
 
